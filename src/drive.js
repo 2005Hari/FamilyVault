@@ -128,12 +128,11 @@ const DB_FILENAME = 'family-vault-db.json';
 
 // Find a file by name in appDataFolder
 async function findFileId(fileName) {
-  const response = await window.gapi.client.drive.files.list({
-    spaces: 'appDataFolder',
-    q: `name='${fileName}'`,
-    fields: 'files(id, name)',
-  });
-  const files = response.result.files;
+  const query = encodeURIComponent(`name='${fileName}'`);
+  const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&fields=files(id,name)&t=${Date.now()}`;
+  const response = await fetch(url, { headers: getHeaders() });
+  const data = await response.json();
+  const files = data.files;
   if (files && files.length > 0) {
     return files[0].id;
   }
@@ -145,11 +144,16 @@ export async function readDatabase() {
   const fileId = await findFileId(DB_FILENAME);
   if (!fileId) return null; // Doesn't exist yet
 
-  const response = await window.gapi.client.drive.files.get({
-    fileId: fileId,
-    alt: 'media',
-  });
-  return response.result;
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&t=${Date.now()}`;
+  const response = await fetch(url, { headers: getHeaders() });
+  if (!response.ok) return null;
+  
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    return text;
+  }
 }
 
 // Upload or create JSON database
