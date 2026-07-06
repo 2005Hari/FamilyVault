@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Family Vault — Drive Debugger</title>
+  <style>
+    body { font-family: monospace; background: #0e1220; color: #e4c77e; padding: 20px; }
+    h1 { color: #fff; }
+    button { background: #b68d40; color: #000; border: none; padding: 10px 18px; cursor: pointer; margin: 4px; font-family: monospace; font-size: 14px; border-radius: 4px; }
+    button:hover { background: #e4c77e; }
+    button.danger { background: #c0392b; color: #fff; }
+    pre { background: #171c2c; padding: 12px; border: 1px solid #2a3044; border-radius: 6px; white-space: pre-wrap; word-break: break-all; font-size: 12px; max-height: 300px; overflow: auto; }
+    .ok { color: #2ecc71; } .err { color: #e74c3c; } .info { color: #3498db; }
+    hr { border-color: #2a3044; }
+    label { display: block; margin-top: 12px; color: #aaa; }
+    input { background: #171c2c; border: 1px solid #b68d40; color: #fff; padding: 6px; font-family: monospace; width: 100%; box-sizing: border-box; margin-top: 4px; }
+  </style>
+</head>
+<body>
+<h1>🔬 Family Vault — Live Drive Debugger</h1>
+<p style="color:#aaa;">This page lets you verify exactly what is happening with your Google Drive.</p>
+<hr/>
+
+<div>
+  <button id="btn-signin">1. Sign in with Google</button>
+  <button id="btn-list">2. List ALL files in Drive AppData</button>
+  <button id="btn-read">3. Read Database Contents</button>
+  <button id="btn-write">4. Write Test Data to Drive</button>
+  <button id="btn-nuke" class="danger">☢️ NUKE — Delete All Files</button>
+</div>
+
+<hr/>
+<pre id="log">Waiting for action...\n</pre>
+
+<script>
+  const CLIENT_ID = ''; // Will be filled by the app
+  const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+  const DISCOVERY = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+
+  let accessToken = null;
+  const log = document.getElementById('log');
+
+  function print(msg, cls = '') {
+    const ts = new Date().toISOString().substr(11, 8);
+    log.innerHTML += `<span class="${cls}">[${ts}] ${msg}</span>\n`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function headers() {
+    return { 'Authorization': 'Bearer ' + accessToken };
+  }
+
+  // Load gapi
+  const script = document.createElement('script');
+  script.src = 'https://apis.google.com/js/api.js';
+  script.onload = () => {
+    gapi.load('client', async () => {
+      // Read client ID from localStorage (set by main app)
+      const clientId = localStorage.getItem('gdrive_client_id') || prompt('Enter your Google Client ID:');
+      if (!clientId) { print('No Client ID provided!', 'err'); return; }
+
+      await gapi.client.init({
+        clientId,
+        scope: SCOPE,
+        discoveryDocs: [DISCOVERY]
+      }).catch(e => print('gapi init error: ' + JSON.stringify(e), 'err'));
+
+      print('Google API loaded. Click "Sign in" to start.', 'info');
+    });
+  };
+  document.head.appendChild(script);
+
+  document.getElementById('btn-signin').onclick = async () => {
+    print('Requesting token...', 'info');
+    try {
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: localStorage.getItem('gdrive_client_id') || prompt('Enter your Google Client ID:'),
+        scope: SCOPE,
+        callback: (tokenResponse) => {
+          if (tokenResponse.error) { print('Auth error: ' + tokenResponse.error, 'err'); return; }
+          accessToken = tokenResponse.access_token;
+          print('✅ Signed in successfully! Access token received.', 'ok');
+        }
+      });
+      tokenClient.requestAccessToken();
+    } catch (e) {
+      print('Sign in error: ' + e.message, 'err');
+    }
+  };
+
+  document.getElementById('btn-list').onclick = async () => {
+    if (!accessToken) { print('Not signed in!', 'err'); return; }
+    print('Listing all files in appDataFolder...', 'info');
+    try {
+      const res = await fetch(
+        'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,size,modifiedTime,createdTime)',
+        { headers: headers() }
+      );
+      const data = await res.json();
+      if (data.files && data.files.length > 0) {
+        print(`✅ Found ${data.files.length} file(s):`, 'ok');
+        data.files.forEach(f => {
+          print(`  📄 Name: ${f.name} | ID: ${f.id} | Size: ${f.size || 0} bytes | Modified: ${f.modifiedTime}`, 'ok');
+        });
+      } else if (data.error) {
+        print('❌ API Error: ' + JSON.stringify(data.error), 'err');
+      } else {
+        print('⚠️ Drive AppData is completely EMPTY (no files found).', 'err');
+      }
+    } catch (e) {
+      print('Request failed: ' + e.message, 'err');
+    }
+  };
+
+  document.getElementById('btn-read').onclick = async () => {
+    if (!accessToken) { print('Not signed in!', 'err'); return; }
+    print("Searching for 'family-vault-db.json'...", 'info');
+    try {
+      const q = encodeURIComponent("name='family-vault-db.json'");
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`,
+        { headers: headers() }
+      );
+      const data = await res.json();
+      if (!data.files || data.files.length === 0) {
+        print('❌ DATABASE FILE NOT FOUND in Drive!', 'err');
+        return;
+      }
+      if (data.files.length > 1) {
+        print(`⚠️ WARNING: Found ${data.files.length} copies of the database! This causes sync issues.`, 'err');
+      }
+      const fileId = data.files[0].id;
+      print(`✅ Found file ID: ${fileId}`, 'ok');
+      print('Downloading contents...', 'info');
+      const contentRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        { headers: headers() }
+      );
+      const text = await contentRes.text();
+      try {
+        const json = JSON.parse(text);
+        print(`✅ Database downloaded successfully!`, 'ok');
+        print(`   Documents: ${json.documents?.length ?? 'N/A'}`, 'ok');
+        print(`   Members: ${json.members?.length ?? 'N/A'}`, 'ok');
+        print(`   Settings PIN: ${json.settings?.pin ?? 'NOT SET'}`, 'ok');
+        print(`   Family Name: ${json.settings?.familyName ?? 'NOT SET'}`, 'ok');
+        print('Full content:\n' + JSON.stringify(json, null, 2));
+      } catch(e) {
+        print('⚠️ File exists but content is NOT valid JSON. Raw content:', 'err');
+        print(text.substring(0, 500));
+      }
+    } catch (e) {
+      print('Request failed: ' + e.message, 'err');
+    }
+  };
+
+  document.getElementById('btn-write').onclick = async () => {
+    if (!accessToken) { print('Not signed in!', 'err'); return; }
+    print('Writing test data to Drive...', 'info');
+    const testData = JSON.stringify({
+      documents: [{ id: 'test-1', title: 'DEBUG TEST DOC', category: 'other' }],
+      members: [],
+      activity: [],
+      settings: { familyName: 'Debug Test Family', pin: '9999' },
+      locations: []
+    });
+
+    try {
+      // Find or create
+      const q = encodeURIComponent("name='family-vault-db.json'");
+      const findRes = await fetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id)`, { headers: headers() });
+      const findData = await findRes.json();
+      let fileId = findData.files?.[0]?.id;
+
+      if (fileId) {
+        print(`Updating existing file: ${fileId}`, 'info');
+        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+          method: 'PATCH', headers: { ...headers(), 'Content-Type': 'application/json' }, body: testData
+        });
+        const result = await res.json();
+        print('✅ Update result: ' + JSON.stringify(result), result.id ? 'ok' : 'err');
+      } else {
+        print('Creating new file...', 'info');
+        const metaRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+          method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: 'family-vault-db.json', parents: ['appDataFolder'] })
+        });
+        const meta = await metaRes.json();
+        print(`File created with ID: ${meta.id}`, 'info');
+        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${meta.id}?uploadType=media`, {
+          method: 'PATCH', headers: { ...headers(), 'Content-Type': 'application/json' }, body: testData
+        });
+        const result = await res.json();
+        print('✅ Create+Upload result: ' + JSON.stringify(result), result.id ? 'ok' : 'err');
+      }
+    } catch (e) {
+      print('Write failed: ' + e.message, 'err');
+    }
+  };
+
+  document.getElementById('btn-nuke').onclick = async () => {
+    if (!accessToken) { print('Not signed in!', 'err'); return; }
+    if (!confirm('This will PERMANENTLY delete ALL files in Drive AppData for this app. Are you sure?')) return;
+    print('☢️ Nuking all files...', 'err');
+    try {
+      const res = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)', { headers: headers() });
+      const data = await res.json();
+      if (!data.files || data.files.length === 0) { print('Drive is already empty.', 'ok'); return; }
+      print(`Deleting ${data.files.length} file(s)...`, 'info');
+      for (const f of data.files) {
+        await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}`, { method: 'DELETE', headers: headers() });
+        print(`  Deleted: ${f.name} (${f.id})`, 'ok');
+      }
+      print('✅ All files deleted. Drive is now clean.', 'ok');
+    } catch (e) {
+      print('Nuke failed: ' + e.message, 'err');
+    }
+  };
+</script>
+<!-- Load Google Identity Services for token client -->
+<script src="https://accounts.google.com/gsi/client" async></script>
+</body>
+</html>
