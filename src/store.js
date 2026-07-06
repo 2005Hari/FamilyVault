@@ -26,9 +26,9 @@ const DEMO_LOCATIONS = [];
 const DEFAULT_SETTINGS = {
   familyName:    'My Family Vault',
   ownerInitials: 'V',
-  pin:           '1234',
+  pin:           null,   // No pin until user completes setup
   autoLockMins:  5,
-  seeded:        true,
+  seeded:        false,  // Not seeded until user finishes onboarding
 };
 
 // ── Store class ─────────────────────────────────────────────
@@ -388,9 +388,10 @@ class Store {
         }
       } else {
         // Cloud is empty or we couldn't find it.
-        // ONLY upload our current local data if we actually have a vault set up (a PIN exists).
-        // Otherwise, we might be a new device overwriting the cloud with an empty vault due to a sync delay!
-        if (this.settings.pin) {
+        // ONLY upload our current local data if the user explicitly completed onboarding on THIS device.
+        // A brand-new device with default settings must NEVER overwrite the cloud with dummy data.
+        const s = this.settings;
+        if (s.pin && s.seeded) {
           await this._syncToDrive(true);
         }
       }
