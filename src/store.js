@@ -395,6 +395,7 @@ class Store {
     if (this._syncTimeout) clearTimeout(this._syncTimeout);
     
     const doSync = async () => {
+      this._syncTimeout = null; // Clear the lock so polling can resume
       try {
         const data = JSON.parse(this.exportData());
         await writeDatabase(data);
