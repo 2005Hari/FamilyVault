@@ -135,31 +135,51 @@ export async function readDatabase() {
 // Upload or create JSON database
 export async function writeDatabase(dataObj) {
   const fileId = await findFileId(DB_FILENAME);
-  const metadata = {
-    name: DB_FILENAME,
-    parents: ['appDataFolder'],
-  };
-  
   const fileContent = JSON.stringify(dataObj);
-  const file = new Blob([fileContent], { type: 'application/json' });
-  
-  const formData = new FormData();
-  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  formData.append('file', file);
 
-  const url = fileId 
-    ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
-    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+  if (fileId) {
+    // Update existing file: just send the raw media
+    const url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        ...getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: fileContent,
+    });
+    return await res.json();
+  } else {
+    // Create new file: construct manual multipart/related body
+    const boundary = '-------314159265358979323846';
+    const delimiter = "\\r\\n--" + boundary + "\\r\\n";
+    const close_delim = "\\r\\n--" + boundary + "--";
 
-  const method = fileId ? 'PATCH' : 'POST';
+    const metadata = {
+      name: DB_FILENAME,
+      parents: ['appDataFolder'],
+    };
 
-  const res = await fetch(url, {
-    method,
-    headers: getHeaders(),
-    body: formData,
-  });
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json\\r\\n\\r\\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: application/json\\r\\n\\r\\n' +
+      fileContent +
+      close_delim;
 
-  return await res.json();
+    const url = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...getHeaders(),
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+      },
+      body: multipartRequestBody,
+    });
+    return await res.json();
+  }
 }
 
 // ── File Upload / Download (for actual scanned docs) ───────────
@@ -173,16 +193,29 @@ export async function uploadDocumentFile(fileBlob, fileName) {
   // Encrypt the file blob before uploading
   const arrayBuffer = await fileBlob.arrayBuffer();
   const encryptedBuffer = await encryptBuffer(arrayBuffer, store.settings.pin);
-  const encryptedBlob = new Blob([encryptedBuffer], { type: 'application/octet-stream' });
 
-  const formData = new FormData();
-  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  formData.append('file', encryptedBlob);
+  const boundary = '-------314159265358979323846';
+  const delimiter = "\r\n--" + boundary + "\r\n";
+  const close_delim = "\r\n--" + boundary + "--";
 
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+  const metaStr = delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delimiter + 'Content-Type: application/octet-stream\r\n\r\n';
+  const closeStr = close_delim;
+
+  const bodyBlob = new Blob([
+    metaStr,
+    encryptedBuffer,
+    closeStr
+  ]);
+
+  const url = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+
+  const res = await fetch(url, {
     method: 'POST',
-    headers: getHeaders(),
-    body: formData,
+    headers: {
+      ...getHeaders(),
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
+    body: bodyBlob,
   });
 
   const data = await res.json();
