@@ -440,6 +440,15 @@ class Store {
       this._isSyncing = false;
     }
   }
+
+  clearAll() {
+    localStorage.removeItem(KEYS.DOCS);
+    localStorage.removeItem(KEYS.MEMBERS);
+    localStorage.removeItem(KEYS.ACTIVITY);
+    localStorage.removeItem(KEYS.SETTINGS);
+    localStorage.removeItem(KEYS.LOCATIONS);
+    this._init();
+  }
 }
 
 export const store = new Store();
