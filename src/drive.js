@@ -152,6 +152,7 @@ export async function writeDatabase(dataObj) {
   } else {
     // Create new file: construct manual multipart/related body
     const boundary = '-------314159265358979323846';
+    const first_delimiter = "--" + boundary + "\r\n";
     const delimiter = "\r\n--" + boundary + "\r\n";
     const close_delim = "\r\n--" + boundary + "--";
 
@@ -161,7 +162,7 @@ export async function writeDatabase(dataObj) {
     };
 
     const multipartRequestBody =
-      delimiter +
+      first_delimiter +
       'Content-Type: application/json\r\n\r\n' +
       JSON.stringify(metadata) +
       delimiter +
@@ -195,10 +196,11 @@ export async function uploadDocumentFile(fileBlob, fileName) {
   const encryptedBuffer = await encryptBuffer(arrayBuffer, store.settings.pin);
 
   const boundary = '-------314159265358979323846';
+  const first_delimiter = "--" + boundary + "\r\n";
   const delimiter = "\r\n--" + boundary + "\r\n";
   const close_delim = "\r\n--" + boundary + "--";
 
-  const metaStr = delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delimiter + 'Content-Type: application/octet-stream\r\n\r\n';
+  const metaStr = first_delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delimiter + 'Content-Type: application/octet-stream\r\n\r\n';
   const closeStr = close_delim;
 
   const bodyBlob = new Blob([
