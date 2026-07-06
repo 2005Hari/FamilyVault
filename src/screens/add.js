@@ -450,6 +450,7 @@ async function saveDocument(container) {
       expiresAt: expiry ? new Date(expiry).toISOString() : null,
       location: { ...locationData },
       driveFileId: driveFileId,
+      mimeType: uploadedFile ? uploadedFile.type : null,
       fileData: null,
       documentType: docType,
       documentNumber: docNum,

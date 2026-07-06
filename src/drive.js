@@ -175,7 +175,7 @@ export async function uploadDocumentFile(fileBlob, fileName) {
   return data.id; // Return the Drive file ID
 }
 
-export async function downloadDocumentFileUrl(fileId) {
+export async function downloadDocumentFileUrl(fileId, mimeType = 'image/jpeg') {
   // We have to fetch it and create an object URL to display it in an <img> tag securely
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
     headers: getHeaders(),
@@ -189,9 +189,8 @@ export async function downloadDocumentFileUrl(fileId) {
   
   try {
     const plaintextBuffer = await decryptBuffer(encryptedBuffer, store.settings.pin);
-    // Determine mime type from extension? Since we don't know it here easily, we can just use application/octet-stream 
-    // or rely on the browser to sniff it. For images/PDFs it usually sniffs it okay.
-    const plaintextBlob = new Blob([plaintextBuffer]);
+    // Use the passed mimeType so the browser can render it properly (otherwise strict MIME checking breaks <img> tags)
+    const plaintextBlob = new Blob([plaintextBuffer], { type: mimeType });
     return URL.createObjectURL(plaintextBlob);
   } catch (e) {
     console.error("Decryption failed:", e);

@@ -167,16 +167,28 @@ export function renderDetail(container, params) {
 
   // Load drive image if needed
   if (doc.driveFileId) {
-    downloadDocumentFileUrl(doc.driveFileId)
+    downloadDocumentFileUrl(doc.driveFileId, doc.mimeType || 'image/jpeg')
       .then(url => {
         doc.loadedUrl = url; // Save for download button later
         const hero = container.querySelector('#detail-hero');
-        if (hero) hero.innerHTML = `<img src="${url}" alt="${doc.title}" />`;
+        if (hero) {
+          if (doc.mimeType === 'application/pdf') {
+            hero.innerHTML = `
+              <object data="${url}" type="application/pdf" width="100%" height="100%" style="min-height: 250px;">
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:20px;">
+                  <svg viewBox="0 0 24 24" width="48" height="48"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" stroke="#8a7a55" stroke-width="1.4" fill="none"/><path d="M14 3v6h6" stroke="#8a7a55" stroke-width="1.4" fill="none"/></svg>
+                  <span style="color:var(--text-lo); font-size:12px; margin-top:8px;">PDF Ready for Download</span>
+                </div>
+              </object>`;
+          } else {
+            hero.innerHTML = `<img src="${url}" alt="${doc.title}" />`;
+          }
+        }
       })
       .catch(e => {
         console.error(e);
         const hero = container.querySelector('#detail-hero');
-        if (hero) hero.innerHTML = `<span style="color:var(--coral); font-size:12px;">Failed to load image</span>`;
+        if (hero) hero.innerHTML = `<span style="color:var(--coral); font-size:12px;">Failed to load document</span>`;
       });
   }
 
