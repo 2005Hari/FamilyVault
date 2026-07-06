@@ -240,6 +240,10 @@ function showChangePinModal(container) {
         <input class="form-input" id="new-pin" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN" /></div>
       <div class="form-group"><label class="form-label">Confirm new PIN</label>
         <input class="form-input" id="conf-pin" type="password" inputmode="numeric" maxlength="4" placeholder="Repeat PIN" /></div>
+      <div style="margin-top:16px; padding:12px; background:var(--surface); border:1px solid var(--coral); border-radius:var(--r-md);">
+        <p style="color:var(--coral); font-size:12px; font-weight:600; margin-bottom:4px;">⚠️ Warning: Encryption Key Change</p>
+        <p style="font-size:11px; color:var(--text-lo); line-height:1.4;">Your PIN is used to encrypt your files. If you change your PIN, any documents you uploaded <b>before</b> this change will no longer be readable. You will need to delete and re-upload them.</p>
+      </div>
     `,
     actions: [
       {
