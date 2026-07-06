@@ -20,6 +20,23 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon.svg'],
+      // Network-first: always try to get fresh code; only fall back to cache if offline
+      workbox: {
+        navigateFallback: 'index.html',
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.origin === self.location.origin,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'family-vault-runtime',
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
+        // Immediately activate the new service worker instead of waiting
+        skipWaiting: true,
+        clientsClaim: true,
+      },
       manifest: {
         name: 'Family Vault',
         short_name: 'Vault',
