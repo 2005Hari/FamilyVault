@@ -102,6 +102,21 @@ function getHeaders() {
   };
 }
 
+// Delete all files in appDataFolder (Nuclear Option)
+export async function nukeCloudDrive() {
+  if (!isSignedIn()) return;
+  const response = await window.gapi.client.drive.files.list({
+    spaces: 'appDataFolder',
+    fields: 'files(id)'
+  });
+  const files = response.result.files;
+  if (files && files.length > 0) {
+    await Promise.all(
+      files.map(f => window.gapi.client.drive.files.delete({ fileId: f.id }))
+    );
+  }
+}
+
 // ── Database JSON Operations ───────────────────────────────────
 
 const DB_FILENAME = 'family-vault-db.json';

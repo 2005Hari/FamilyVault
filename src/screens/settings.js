@@ -86,6 +86,10 @@ export function renderSettings(container) {
         🚪 Sign out of Google Drive
       </button>
 
+      <button class="btn-ghost" id="s-nuke" style="margin-top:8px; color:var(--coral); font-weight: bold;">
+        ☢️ Nuke Cloud Drive (Reset Everything)
+      </button>
+
       <!-- About -->
       <div style="text-align:center; margin-top:32px; padding-bottom:16px;">
         <p style="font-family:'Fraunces',serif; font-size:20px; margin-bottom:4px;">Family Vault</p>
@@ -248,6 +252,38 @@ export function renderSettings(container) {
             store.clearAll();
             showToast('Signed out successfully', 'success');
             router.navigate('lock');
+          }
+        },
+        { label: 'Cancel', className: 'btn-ghost btn-sm', onClick: () => {} }
+      ],
+    });
+  });
+
+  // Nuke Cloud
+  container.querySelector('#s-nuke').addEventListener('click', async () => {
+    const { nukeCloudDrive } = await import('../drive.js');
+    showModal({
+      title: '☢️ Nuke Cloud Drive?',
+      body: '<p>This will <b>permanently delete EVERYTHING</b> in your Google Drive AppData folder for this app.</p><p style="margin-top:12px; color:var(--coral); font-size:12.5px;">Type <b>NUKE</b> to confirm.</p><input class="form-input" id="nuke-confirm" type="text" placeholder="Type NUKE" style="margin-top:10px;" />',
+      actions: [
+        {
+          label: 'NUKE IT',
+          className: 'btn-ghost btn-danger',
+          onClick: async () => {
+            const val = document.querySelector('#nuke-confirm')?.value;
+            if (val !== 'NUKE') { showToast('Type NUKE to confirm', 'error'); return; }
+            try {
+              document.body.style.pointerEvents = 'none';
+              showToast('Nuking Google Drive...', 'success');
+              await nukeCloudDrive();
+              store.clearAll();
+              showToast('Cloud Drive nuked successfully!', 'success');
+              router.navigate('lock');
+            } catch (e) {
+              showToast('Failed to nuke: ' + e.message, 'error');
+            } finally {
+              document.body.style.pointerEvents = 'auto';
+            }
           }
         },
         { label: 'Cancel', className: 'btn-ghost btn-sm', onClick: () => {} }
