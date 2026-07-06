@@ -104,15 +104,20 @@ function getHeaders() {
 
 // Delete all files in appDataFolder (Nuclear Option)
 export async function nukeCloudDrive() {
-  if (!isSignedIn()) return;
-  const response = await window.gapi.client.drive.files.list({
-    spaces: 'appDataFolder',
-    fields: 'files(id)'
+  if (!isSignedIn()) {
+    throw new Error("You must be signed in to nuke the cloud drive.");
+  }
+  const listRes = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id)', {
+    headers: getHeaders()
   });
-  const files = response.result.files;
+  const response = await listRes.json();
+  const files = response.files;
   if (files && files.length > 0) {
     await Promise.all(
-      files.map(f => window.gapi.client.drive.files.delete({ fileId: f.id }))
+      files.map(f => fetch(`https://www.googleapis.com/drive/v3/files/${f.id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      }))
     );
   }
 }
