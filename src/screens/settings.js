@@ -82,6 +82,10 @@ export function renderSettings(container) {
         🔒 Lock vault now
       </button>
 
+      <button class="btn-ghost" id="s-signout" style="margin-top:8px; color:var(--coral);">
+        🚪 Sign out of Google Drive
+      </button>
+
       <!-- About -->
       <div style="text-align:center; margin-top:32px; padding-bottom:16px;">
         <p style="font-family:'Fraunces',serif; font-size:20px; margin-bottom:4px;">Family Vault</p>
@@ -227,6 +231,28 @@ export function renderSettings(container) {
   container.querySelector('#s-lock').addEventListener('click', () => {
     document.getElementById('app-tabbar')?.classList.add('hidden');
     router.navigate('lock');
+  });
+
+  // Sign out
+  container.querySelector('#s-signout').addEventListener('click', async () => {
+    const { signOut } = await import('../drive.js');
+    showModal({
+      title: 'Sign out?',
+      body: '<p>This will disconnect your Google Drive and clear your local PIN session.</p>',
+      actions: [
+        {
+          label: 'Sign out',
+          className: 'btn-primary btn-sm',
+          onClick: () => {
+            signOut();
+            store.clearAll();
+            showToast('Signed out successfully', 'success');
+            router.navigate('lock');
+          }
+        },
+        { label: 'Cancel', className: 'btn-ghost btn-sm', onClick: () => {} }
+      ],
+    });
   });
 }
 
