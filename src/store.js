@@ -358,7 +358,14 @@ class Store {
           this.importData(JSON.stringify(data));
           if (isBackground) {
             const { showToast } = await import('./app.js');
-            showToast('Vault updated with new changes', 'success');
+            showToast('Vault updated with new changes from Drive', 'success');
+            
+            // Auto-refresh the current view if we are not editing
+            const { router } = await import('./router.js');
+            const path = router.currentPath();
+            if (path && path !== 'add' && !path.startsWith('detail')) {
+              router.navigate(path, true);
+            }
           }
         }
       } else {

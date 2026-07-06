@@ -15,6 +15,8 @@ export function renderLock(container) {
   if (!isSignedIn()) {
     renderGoogleSignIn(container);
   } else {
+    // Proactively pull from Drive in the background while they enter PIN
+    store.pullFromDrive();
     checkVaultState(container);
   }
 }
