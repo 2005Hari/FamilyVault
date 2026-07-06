@@ -152,8 +152,8 @@ export async function writeDatabase(dataObj) {
   } else {
     // Create new file: construct manual multipart/related body
     const boundary = '-------314159265358979323846';
-    const delimiter = "\\r\\n--" + boundary + "\\r\\n";
-    const close_delim = "\\r\\n--" + boundary + "--";
+    const delimiter = "\r\n--" + boundary + "\r\n";
+    const close_delim = "\r\n--" + boundary + "--";
 
     const metadata = {
       name: DB_FILENAME,
@@ -162,10 +162,10 @@ export async function writeDatabase(dataObj) {
 
     const multipartRequestBody =
       delimiter +
-      'Content-Type: application/json\\r\\n\\r\\n' +
+      'Content-Type: application/json\r\n\r\n' +
       JSON.stringify(metadata) +
       delimiter +
-      'Content-Type: application/json\\r\\n\\r\\n' +
+      'Content-Type: application/json\r\n\r\n' +
       fileContent +
       close_delim;
 
