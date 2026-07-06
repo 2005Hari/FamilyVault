@@ -130,7 +130,22 @@ function setupRoutes() {
 
 // ── Init ─────────────────────────────────────────────────────
 
-function init() {
+async function init() {
+  // Force-unregister service workers to prevent stale PWA caching
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let r of registrations) {
+        await r.unregister();
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  // If the old dummy data is still stuck in the database, forcefully wipe it out
+  if (store.documents.some(d => d.title === "Dad's Passport" || d.title === "Car Insurance")) {
+    store.clearAll();
+  }
+
   buildShell();
   setupRoutes();
   router.start();

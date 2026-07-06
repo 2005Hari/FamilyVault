@@ -148,7 +148,10 @@ function renderPinScreen(container) {
     try {
       if (store.settings.biometricEnrolled) {
         const ok = await store.verifyBiometrics();
-        if (ok) renderProfileSelect(container);
+        if (ok) {
+          store.setCurrentMember('member-1');
+          unlock();
+        }
       } else {
         showToast('Enable Biometrics in Settings first', 'error');
       }
@@ -196,7 +199,8 @@ function updateDots() {
 
 function checkPin(container = document.querySelector('#app')) {
   if (store.verifyPin(pinBuffer)) {
-    renderProfileSelect(container);
+    store.setCurrentMember('member-1');
+    unlock();
   } else {
     // Shake animation
     const dots = document.querySelector('.pin-dots');
