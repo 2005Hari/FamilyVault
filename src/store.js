@@ -381,7 +381,7 @@ class Store {
     if (this._polling) return;
     this._polling = setInterval(() => {
       // Prevent overwriting if we are currently saving or adding a document
-      if (this._syncTimeout) return;
+      if (this._isSyncing) return;
       if (window.location.hash.includes('add')) return;
       
       this.pullFromDrive(true);
@@ -391,23 +391,35 @@ class Store {
   async _syncToDrive(force = false) {
     if (!isSignedIn()) return;
     
-    // Simple debounce to prevent spamming the API
-    if (this._syncTimeout) clearTimeout(this._syncTimeout);
+    // Prevent overlapping syncs
+    if (this._isSyncing) return;
+    this._isSyncing = true;
     
-    const doSync = async () => {
-      this._syncTimeout = null; // Clear the lock so polling can resume
-      try {
-        const data = JSON.parse(this.exportData());
-        await writeDatabase(data);
-      } catch (e) {
-        console.error('Failed to sync to drive', e);
+    try {
+      // Show sync indicator in the UI if possible
+      const appEl = document.getElementById('app');
+      let syncBadge = document.getElementById('sync-badge');
+      if (appEl && !syncBadge) {
+        syncBadge = document.createElement('div');
+        syncBadge.id = 'sync-badge';
+        syncBadge.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:6px;"></div> <span style="font-size:11px;">Saving to Drive...</span>`;
+        syncBadge.style.cssText = 'position:fixed; top:10px; right:10px; background:var(--surface-raised); border:1px solid var(--line); padding:4px 8px; border-radius:12px; display:flex; align-items:center; z-index:9999; color:var(--text-hi); box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+        appEl.appendChild(syncBadge);
       }
-    };
 
-    if (force) {
-      await doSync();
-    } else {
-      this._syncTimeout = setTimeout(doSync, 2000);
+      const data = JSON.parse(this.exportData());
+      await writeDatabase(data);
+      
+      if (syncBadge) {
+        syncBadge.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" style="margin-right:4px;"><path d="M20 6L9 17l-5-5" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg> <span style="font-size:11px;color:var(--text-hi);">Saved</span>`;
+        setTimeout(() => syncBadge.remove(), 2000);
+      }
+    } catch (e) {
+      console.error('Failed to sync to drive', e);
+      const syncBadge = document.getElementById('sync-badge');
+      if (syncBadge) syncBadge.remove();
+    } finally {
+      this._isSyncing = false;
     }
   }
 }
