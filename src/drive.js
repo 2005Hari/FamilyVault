@@ -150,34 +150,32 @@ export async function writeDatabase(dataObj) {
     });
     return await res.json();
   } else {
-    // Create new file: construct manual multipart/related body
-    const boundary = '-------314159265358979323846';
-    const first_delimiter = "--" + boundary + "\r\n";
-    const delimiter = "\r\n--" + boundary + "\r\n";
-    const close_delim = "\r\n--" + boundary + "--";
-
+    // Create new file metadata first
     const metadata = {
       name: DB_FILENAME,
       parents: ['appDataFolder'],
     };
 
-    const multipartRequestBody =
-      first_delimiter +
-      'Content-Type: application/json\r\n\r\n' +
-      JSON.stringify(metadata) +
-      delimiter +
-      'Content-Type: application/json\r\n\r\n' +
-      fileContent +
-      close_delim;
-
-    const url = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-    const res = await fetch(url, {
+    const metaRes = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: {
         ...getHeaders(),
-        'Content-Type': `multipart/related; boundary=${boundary}`,
+        'Content-Type': 'application/json',
       },
-      body: multipartRequestBody,
+      body: JSON.stringify(metadata)
+    });
+    
+    const newFile = await metaRes.json();
+
+    // Upload content to the newly created file
+    const url = `https://www.googleapis.com/upload/drive/v3/files/${newFile.id}?uploadType=media`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        ...getHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: fileContent,
     });
     return await res.json();
   }
@@ -195,29 +193,27 @@ export async function uploadDocumentFile(fileBlob, fileName) {
   const arrayBuffer = await fileBlob.arrayBuffer();
   const encryptedBuffer = await encryptBuffer(arrayBuffer, store.settings.pin);
 
-  const boundary = '-------314159265358979323846';
-  const first_delimiter = "--" + boundary + "\r\n";
-  const delimiter = "\r\n--" + boundary + "\r\n";
-  const close_delim = "\r\n--" + boundary + "--";
-
-  const metaStr = first_delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delimiter + 'Content-Type: application/octet-stream\r\n\r\n';
-  const closeStr = close_delim;
-
-  const bodyBlob = new Blob([
-    metaStr,
-    encryptedBuffer,
-    closeStr
-  ]);
-
-  const url = `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
-
-  const res = await fetch(url, {
+  // 1. Create file metadata
+  const metaRes = await fetch('https://www.googleapis.com/drive/v3/files', {
     method: 'POST',
     headers: {
       ...getHeaders(),
-      'Content-Type': `multipart/related; boundary=${boundary}`,
+      'Content-Type': 'application/json',
     },
-    body: bodyBlob,
+    body: JSON.stringify(metadata)
+  });
+  
+  const newFile = await metaRes.json();
+
+  // 2. Upload the encrypted binary content
+  const url = `https://www.googleapis.com/upload/drive/v3/files/${newFile.id}?uploadType=media`;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      ...getHeaders(),
+      'Content-Type': 'application/octet-stream',
+    },
+    body: encryptedBuffer,
   });
 
   const data = await res.json();
