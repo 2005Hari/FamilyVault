@@ -357,7 +357,10 @@ class Store {
   async pullFromDrive(isBackground = false) {
     if (!isSignedIn()) return;
     try {
-      const data = await readDatabase();
+      let data = await readDatabase();
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (e) { console.error('Parse err', e); }
+      }
       if (data) {
         // If the remote data has the old dummy data, NUKE IT on Drive by overwriting it with local
         if (data.documents && data.documents.some(d => d.title === "Dad's Passport" || d.title === "Car Insurance")) {
