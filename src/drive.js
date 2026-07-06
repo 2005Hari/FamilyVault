@@ -11,7 +11,12 @@ const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/res
 const SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
 
 let tokenClient;
-let accessToken = null;
+let accessToken = localStorage.getItem('gdrive_access_token') || null;
+let tokenExpiry = parseInt(localStorage.getItem('gdrive_token_expiry')) || 0;
+
+if (Date.now() > tokenExpiry) {
+  accessToken = null;
+}
 let gapiInited = false;
 
 // Initialize GAPI and GSI
@@ -56,6 +61,9 @@ export function signIn() {
         reject(resp);
       }
       accessToken = resp.access_token;
+      tokenExpiry = Date.now() + (resp.expires_in * 1000);
+      localStorage.setItem('gdrive_access_token', accessToken);
+      localStorage.setItem('gdrive_token_expiry', tokenExpiry.toString());
       resolve(accessToken);
     };
 
@@ -71,6 +79,8 @@ export function signOut() {
   if (accessToken) {
     window.google.accounts.oauth2.revoke(accessToken, () => {
       accessToken = null;
+      localStorage.removeItem('gdrive_access_token');
+      localStorage.removeItem('gdrive_token_expiry');
       window.localStorage.clear(); // Clear local cache on sign out
     });
   }
@@ -78,6 +88,10 @@ export function signOut() {
 
 // Check if user is signed in
 export function isSignedIn() {
+  if (accessToken && Date.now() > tokenExpiry) {
+    accessToken = null;
+    localStorage.removeItem('gdrive_access_token');
+  }
   return accessToken !== null;
 }
 
