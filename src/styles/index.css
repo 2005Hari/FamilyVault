@@ -1,0 +1,251 @@
+/* ============================================================
+   FAMILY VAULT — Design Tokens & Global Styles
+   ============================================================ */
+
+:root {
+  /* Colors */
+  --ink:         #0E1220;
+  --ink-deep:    #07090f;
+  --surface:     #171C2C;
+  --surface-2:   #1F2537;
+  --surface-3:   #262d42;
+  --paper:       #F3F1EA;
+  --paper-dim:   #E7E3D8;
+  --brass:       #B68D40;
+  --brass-soft:  #E4C77E;
+  --brass-dim:   rgba(182,141,64,0.12);
+  --teal:        #4FA491;
+  --teal-dim:    rgba(79,164,145,0.12);
+  --coral:       #D9756C;
+  --coral-dim:   rgba(217,117,108,0.12);
+  --purple:      #8B73C4;
+
+  /* Text */
+  --text-hi:     #F1EEE6;
+  --text-med:    #C8C3B8;
+  --text-lo:     #9AA0AE;
+  --text-lo-2:   #6B7280;
+
+  /* Lines */
+  --line:        rgba(255,255,255,0.07);
+  --line-2:      rgba(255,255,255,0.13);
+  --line-3:      rgba(255,255,255,0.20);
+
+  /* Radii */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  /* Shadows */
+  --shadow-sm:   0 2px 8px rgba(0,0,0,0.35);
+  --shadow-md:   0 8px 24px rgba(0,0,0,0.45);
+  --shadow-lg:   0 20px 60px rgba(0,0,0,0.6);
+  --shadow-brass: 0 8px 28px -4px rgba(182,141,64,0.45);
+
+  /* Transitions */
+  --t-fast: 0.15s ease;
+  --t-med:  0.25s ease;
+  --t-slow: 0.4s ease;
+
+  /* Layout */
+  --sidebar-w: 260px;
+  --header-h: 64px;
+  --tabbar-h: 72px;
+  --content-max: 720px;
+}
+
+/* ---------- Reset ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--ink-deep);
+  font-family: 'Inter', sans-serif;
+  color: var(--text-hi);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+#app {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 5%, rgba(182,141,64,0.06), transparent),
+    radial-gradient(ellipse 50% 50% at 90% 95%, rgba(79,164,145,0.05), transparent),
+    var(--ink-deep);
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Fraunces', serif;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-hi);
+}
+
+p { margin: 0; }
+button { cursor: pointer; font-family: 'Inter', sans-serif; }
+input, textarea, select { font-family: 'Inter', sans-serif; }
+a { color: var(--brass-soft); text-decoration: none; }
+
+.mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.02em; }
+
+/* ---------- Scrollbars ---------- */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-lo-2); }
+
+/* ---------- Typography helpers ---------- */
+.eyebrow {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--brass-soft);
+  font-weight: 600;
+  margin: 0;
+}
+.muted { color: var(--text-lo); }
+.text-coral { color: var(--coral); }
+.text-teal { color: var(--teal); }
+.text-brass { color: var(--brass-soft); }
+
+/* ---------- Animations ---------- */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-brass {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(182,141,64,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(182,141,64,0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes dotFill {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+@keyframes dialRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---------- Screen transitions ---------- */
+.screen-enter {
+  animation: fadeUp 0.28s ease forwards;
+}
+
+/* ---------- Skeleton loaders ---------- */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-3) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--r-sm);
+}
+
+/* ---------- Toast container ---------- */
+#toast-container {
+  position: fixed;
+  bottom: calc(var(--tabbar-h) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--surface-3);
+  border: 1px solid var(--line-2);
+  color: var(--text-hi);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: 24px;
+  box-shadow: var(--shadow-md);
+  animation: fadeUp 0.2s ease;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.toast.success { border-color: rgba(79,164,145,0.4); color: var(--teal); }
+.toast.error   { border-color: rgba(217,117,108,0.4); color: var(--coral); }
+
+/* ---------- Modal overlay ---------- */
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  display: none;
+  background: rgba(5,6,10,0.75);
+  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+#modal-overlay.open {
+  display: flex;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--xl, 28px);
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeUp 0.25s ease;
+}
+
+.modal h3 { font-size: 20px; margin-bottom: 8px; }
+.modal p  { font-size: 13.5px; color: var(--text-lo); line-height: 1.55; }
+.modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+
+/* ---------- Responsive layout ---------- */
+@media (min-width: 768px) {
+  #toast-container {
+    bottom: 24px;
+    left: calc(var(--sidebar-w) + 50%);
+    transform: translateX(-50%);
+  }
+}

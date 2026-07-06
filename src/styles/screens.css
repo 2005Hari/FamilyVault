@@ -1,0 +1,406 @@
+/* ============================================================
+   FAMILY VAULT — Screen-specific styles
+   ============================================================ */
+
+/* ---------- Lock Screen ---------- */
+.lock-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  text-align: center;
+  padding: 40px 24px;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(182,141,64,0.07), transparent 55%),
+    var(--ink-deep);
+}
+
+.lock-dial {
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 28px;
+  position: relative;
+}
+
+.lock-dial svg { width: 100%; height: 100%; }
+
+.lock-dial .dial-outer {
+  animation: dialRotate 20s linear infinite;
+  transform-origin: 85px 85px;
+}
+
+.lock-title { font-size: 28px; margin-bottom: 6px; }
+.lock-sub   { font-size: 13.5px; color: var(--text-lo); }
+
+.pin-dots {
+  display: flex;
+  gap: 18px;
+  margin: 36px 0 28px;
+}
+
+.pin-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-2);
+  transition: background var(--t-fast), border-color var(--t-fast), transform 0.1s ease;
+}
+
+.pin-dot.filled {
+  background: var(--brass-soft);
+  border-color: var(--brass-soft);
+  animation: dotFill 0.15s ease;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 288px;
+  margin: 0 auto;
+}
+
+.key {
+  height: 68px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text-hi);
+  font-size: 22px;
+  font-family: 'Fraunces', serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  cursor: pointer;
+  transition: background var(--t-fast), transform var(--t-fast);
+  user-select: none;
+}
+
+.key:hover  { background: var(--surface-2); }
+.key:active { transform: scale(0.92); background: var(--surface-3); }
+
+.key .key-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--text-lo-2);
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+.key.ghost { background: none; border: none; }
+.key.face svg { width: 26px; height: 26px; stroke: var(--brass-soft); fill: none; stroke-width: 1.6; }
+
+.unlock-hint {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--text-lo-2);
+}
+
+/* Onboarding (first-time setup) */
+.onboard-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100dvh;
+  padding: 60px 32px 40px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.onboard-logo {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(155deg, var(--brass-soft), var(--brass));
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-brass);
+}
+
+.onboard-logo svg {
+  width: 36px;
+  height: 36px;
+  stroke: #1a1305;
+  fill: none;
+  stroke-width: 2;
+}
+
+.onboard-screen h1 { font-size: 30px; margin-bottom: 10px; }
+.onboard-screen > p { font-size: 14px; color: var(--text-lo); line-height: 1.55; margin-bottom: 36px; text-align: center; }
+
+/* ---------- Dashboard ---------- */
+.greet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.greet-row .avatar { cursor: pointer; transition: transform var(--t-fast); }
+.greet-row .avatar:hover { transform: scale(1.06); }
+
+.expiry-alert-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--coral);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  position: relative;
+  top: -2px;
+  margin-left: 4px;
+}
+
+/* ---------- Add Screen ---------- */
+.scan-preview {
+  width: 100%;
+  height: 200px;
+  border-radius: var(--r-lg);
+  object-fit: cover;
+  background: var(--surface-2);
+  border: 1px dashed var(--line-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.scan-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-lo-2);
+}
+
+.scan-preview-placeholder svg {
+  width: 40px;
+  height: 40px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.2;
+}
+
+.scan-preview-placeholder span { font-size: 12px; }
+
+/* ---------- Detail Screen ---------- */
+.detail-hero {
+  height: 200px;
+  border-radius: var(--r-xl);
+  background: linear-gradient(155deg, var(--paper), var(--paper-dim));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.detail-hero svg {
+  width: 52px;
+  height: 52px;
+  stroke: #8a7a55;
+  fill: none;
+  stroke-width: 1.3;
+}
+
+.detail-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-title { font-size: 23px; margin-top: 18px; }
+.detail-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+.detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.qr-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.qr-hint { font-size: 12px; color: var(--text-lo); line-height: 1.45; }
+.qr-hint b { color: var(--text-hi); }
+
+/* ---------- Vault / Categories Screen ---------- */
+.physical-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+
+.physical-tree-item:hover { background: var(--surface-2); }
+.physical-tree-item:last-child { border-bottom: none; }
+
+.physical-tree-item .loc-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.physical-tree-item .loc-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--brass-soft);
+  fill: none;
+  stroke-width: 1.6;
+}
+
+.physical-tree-item .loc-name { font-size: 13.5px; font-weight: 600; flex: 1; }
+.physical-tree-item .loc-count { font-size: 11.5px; color: var(--text-lo); font-family: 'IBM Plex Mono', monospace; }
+.physical-tree-item .loc-arrow { color: var(--text-lo-2); font-size: 14px; }
+
+/* ---------- Family Screen ---------- */
+.invite-card {
+  background: var(--surface);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  text-align: center;
+  margin-top: 16px;
+}
+
+.invite-card svg {
+  width: 32px;
+  height: 32px;
+  stroke: var(--text-lo-2);
+  fill: none;
+  stroke-width: 1.4;
+  margin-bottom: 10px;
+}
+
+.invite-card h4 { font-size: 15px; margin-bottom: 6px; }
+.invite-card p  { font-size: 12.5px; color: var(--text-lo); line-height: 1.45; margin-bottom: 16px; }
+
+.device-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.device-item:last-child { border-bottom: none; }
+
+.device-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.device-icon svg { width: 17px; height: 17px; stroke: var(--text-lo); fill: none; stroke-width: 1.6; }
+.device-name { font-size: 13.5px; font-weight: 600; flex: 1; }
+.device-time { font-size: 11.5px; color: var(--text-lo); }
+.device-this { font-size: 11px; color: var(--teal); font-weight: 600; background: var(--teal-dim); padding: 3px 8px; border-radius: 20px; }
+
+/* ---------- Settings Screen ---------- */
+.settings-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background var(--t-fast);
+}
+
+.settings-row:last-child { border-bottom: none; }
+.settings-row:hover { background: var(--surface-2); }
+
+.settings-row .s-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.settings-row .s-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+.settings-row .s-label { flex: 1; font-size: 14px; font-weight: 500; }
+.settings-row .s-value { font-size: 12.5px; color: var(--text-lo); }
+.settings-row .s-arrow { color: var(--text-lo-2); font-size: 16px; }
+
+.settings-row .s-icon.brass  { background: var(--brass-dim);  color: var(--brass-soft); }
+.settings-row .s-icon.teal   { background: var(--teal-dim);   color: var(--teal); }
+.settings-row .s-icon.coral  { background: var(--coral-dim);  color: var(--coral); }
+.settings-row .s-icon.purple { background: rgba(139,115,196,0.12); color: var(--purple); }
+
+/* ---------- Doc list (category filtered) ---------- */
+.doc-list-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: opacity var(--t-fast);
+}
+
+.doc-list-row:last-child { border-bottom: none; }
+.doc-list-row:hover { opacity: 0.8; }
+.doc-list-row .doc-thumb { width: 46px; height: 46px; flex: 0 0 46px; }
+.doc-list-row .doc-thumb svg { width: 20px; height: 20px; }
+.doc-list-row .dl-name { font-size: 14px; font-weight: 600; }
+.doc-list-row .dl-meta { font-size: 11.5px; color: var(--text-lo); margin-top: 2px; }
+.doc-list-row .dl-expiry { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; margin-left: auto; white-space: nowrap; }
+.doc-list-row .dl-expiry.urgent { background: var(--coral-dim); color: var(--coral); }
+.doc-list-row .dl-expiry.ok { background: var(--teal-dim); color: var(--teal); }
+
+/* ---------- Sidebar + screen transitions ---------- */
+@media (min-width: 768px) {
+  .page-header {
+    padding-top: 32px;
+  }
+
+  .screen-inner {
+    padding-top: 8px;
+  }
+}
