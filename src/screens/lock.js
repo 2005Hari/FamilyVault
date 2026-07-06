@@ -11,12 +11,20 @@ let isOnboarding = false;
 let onboardStep = 1; // 1=family name, 2=set PIN, 3=confirm PIN
 let onboardData = {};
 
-export function renderLock(container) {
+export async function renderLock(container) {
   if (!isSignedIn()) {
     renderGoogleSignIn(container);
   } else {
-    // Proactively pull from Drive in the background while they enter PIN
-    store.pullFromDrive();
+    // If online, securely fetch latest vault state (like new PINs) before rendering the lock screen
+    if (navigator.onLine) {
+      container.innerHTML = `
+        <div class="lock-screen" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%;">
+          <div class="spinner" style="margin-bottom:16px;"></div>
+          <p style="color:var(--text-lo); font-size:14px;">Syncing vault...</p>
+        </div>
+      `;
+      await store.pullFromDrive();
+    }
     checkVaultState(container);
   }
 }
