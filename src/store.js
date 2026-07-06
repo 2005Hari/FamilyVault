@@ -290,12 +290,27 @@ class Store {
 
   importData(jsonStr) {
     const data = JSON.parse(jsonStr);
-    if (data.documents) localStorage.setItem(KEYS.DOCS,      JSON.stringify(data.documents));
-    if (data.members)   localStorage.setItem(KEYS.MEMBERS,   JSON.stringify(data.members));
-    if (data.activity)  localStorage.setItem(KEYS.ACTIVITY,  JSON.stringify(data.activity));
-    if (data.settings)  localStorage.setItem(KEYS.SETTINGS,  JSON.stringify(data.settings));
-    if (data.locations) localStorage.setItem(KEYS.LOCATIONS, JSON.stringify(data.locations));
-    this._emit('all');
+    if (data.documents) {
+      this.documents = data.documents;
+      localStorage.setItem(KEYS.DOCS, JSON.stringify(data.documents));
+    }
+    if (data.members) {
+      this.members = data.members;
+      localStorage.setItem(KEYS.MEMBERS, JSON.stringify(data.members));
+    }
+    if (data.activity) {
+      this.activity = data.activity;
+      localStorage.setItem(KEYS.ACTIVITY, JSON.stringify(data.activity));
+    }
+    if (data.settings) {
+      this.settings = data.settings;
+      localStorage.setItem(KEYS.SETTINGS, JSON.stringify(data.settings));
+    }
+    if (data.locations) {
+      this.locations = data.locations;
+      localStorage.setItem(KEYS.LOCATIONS, JSON.stringify(data.locations));
+    }
+    this._emit('all', true); // skipSync = true
   }
 
   clearAll() {
@@ -313,10 +328,10 @@ class Store {
     };
   }
 
-  _emit(key) {
+  _emit(key, skipSync = false) {
     (this._listeners[key] || []).forEach(cb => cb());
     (this._listeners['all'] || []).forEach(cb => cb());
-    this._syncToDrive();
+    if (!skipSync) this._syncToDrive();
   }
 
   // ── Google Drive Sync ──
