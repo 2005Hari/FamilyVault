@@ -344,6 +344,13 @@ class Store {
     try {
       const data = await readDatabase();
       if (data) {
+        // If the remote data has the old dummy data, NUKE IT on Drive by overwriting it with local
+        if (data.documents && data.documents.some(d => d.title === "Dad's Passport" || d.title === "Car Insurance")) {
+           console.log("Found dummy data on Drive! Nuking it...");
+           await this._syncToDrive(true);
+           return;
+        }
+
         const remoteHash = this._getDataHash(data);
         const localHash = this._getDataHash();
         
