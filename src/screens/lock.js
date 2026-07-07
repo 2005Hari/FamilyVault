@@ -280,7 +280,7 @@ function renderProfileSelect(container) {
 }
 
 function unlock() {
-  store.startPolling();
+  store.startRealTimeSync(); // real-time Firestore listener replaces polling
   checkAndNotifyExpirations();
   document.getElementById('app-tabbar')?.classList.remove('hidden');
   router.navigate('dashboard');
