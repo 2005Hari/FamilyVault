@@ -324,16 +324,25 @@ class Store {
 
   // ── Google Drive / Firestore Sync ────────────────────────
 
-  // Write local vault data to Firestore
   async _syncToFirestore() {
     if (!isSignedIn()) return;
-    if (this._isSyncing) return;
+    
+    // If a sync is already running, queue another one to run immediately after.
+    if (this._isSyncing) {
+      this._syncQueued = true;
+      return;
+    }
     this._isSyncing = true;
 
     this._showSyncBadge('saving');
     try {
-      const data = JSON.parse(this.exportData());
-      await writeVault(data);
+      do {
+        this._syncQueued = false;
+        // exportData captures the LATEST state of localStorage at the moment the loop iteration starts
+        const data = JSON.parse(this.exportData());
+        await writeVault(data);
+      } while (this._syncQueued); // If another sync was requested while we were writing, loop and write again
+
       this._showSyncBadge('saved');
     } catch (e) {
       console.error('Firestore write failed:', e);

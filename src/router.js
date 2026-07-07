@@ -17,6 +17,10 @@ export const router = {
     return this;
   },
 
+  currentPath() {
+    return currentRoute;
+  },
+
   /**
    * Navigate to a route.
    * @param {string} path - e.g. 'dashboard', or 'detail/doc-1'
