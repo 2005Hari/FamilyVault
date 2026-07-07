@@ -30,9 +30,11 @@ const app        = initializeApp(firebaseConfig);
 const db         = getFirestore(app);
 const auth       = getAuth(app);
 
-// Google provider — also requests Drive scope so we can store files
+// Google provider — requests Drive scope in the same popup
 const provider   = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive.appdata');
+// Force full consent screen so Drive scope is ALWAYS granted (not cached without it)
+provider.setCustomParameters({ prompt: 'consent', access_type: 'online' });
 
 // ── Auth State ───────────────────────────────────────────────
 let _currentUser     = null;
@@ -56,50 +58,17 @@ export function waitForAuth() {
 
 // ── Sign In ──────────────────────────────────────────────────
 export async function signIn() {
-  // Step 1: Firebase Auth — gets user identity (email, UID, profile)
-  const result = await signInWithPopup(auth, provider);
+  // Firebase Auth popup — requests Drive scope via prompt:consent
+  const result  = await signInWithPopup(auth, provider);
   _currentUser  = result.user;
 
-  // Step 2: Request a separate Drive-scoped token via GSI Token Client.
-  // Firebase Auth's token doesn't reliably include drive.appdata scope,
-  // so we must request it explicitly using the Google Identity Services library.
-  _driveToken = await requestDriveToken();
+  // Extract Drive-scoped access token directly from Firebase credential
+  const cred   = GoogleAuthProvider.credentialFromResult(result);
+  _driveToken  = cred?.accessToken || null;
+  if (_driveToken) {
+    localStorage.setItem('gdrive_access_token', _driveToken);
+  }
   return _currentUser;
-}
-
-// Request a Google OAuth token with drive.appdata scope using GSI
-function requestDriveToken() {
-  return new Promise((resolve, reject) => {
-    // GSI client_id — same project as Firebase
-    const CLIENT_ID = '712266813967-p2tpl2l2p38nqvcur45pdmh0kqrlbtr0.apps.googleusercontent.com';
-
-    const waitForGSI = (attempts = 0) => {
-      if (window.google?.accounts?.oauth2) {
-        const tokenClient = window.google.accounts.oauth2.initTokenClient({
-          client_id: CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/drive.appdata',
-          hint: _currentUser?.email || '',
-          callback: (response) => {
-            if (response.error) {
-              reject(new Error('Drive token request failed: ' + response.error));
-              return;
-            }
-            _driveToken = response.access_token;
-            localStorage.setItem('gdrive_access_token', _driveToken);
-            resolve(_driveToken);
-          },
-        });
-        tokenClient.requestAccessToken({ prompt: '' }); // '' = no prompt if already consented
-      } else if (attempts < 20) {
-        setTimeout(() => waitForGSI(attempts + 1), 300);
-      } else {
-        // Fallback to cached token
-        const cached = localStorage.getItem('gdrive_access_token');
-        resolve(cached);
-      }
-    };
-    waitForGSI();
-  });
 }
 
 
