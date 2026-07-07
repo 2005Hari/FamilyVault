@@ -65,7 +65,10 @@ function renderGoogleSignIn(container) {
       await signIn();
       container.querySelector('#google-signin-btn').style.display = 'none';
       container.querySelector('#drive-loading').style.display = 'block';
-      
+
+      // ── CRITICAL: wipe stale local data so Drive always wins on sign-in ──
+      store.clearAll();
+
       await store.pullFromDrive();
       checkVaultState(container);
     } catch (e) {

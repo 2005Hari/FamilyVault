@@ -316,7 +316,7 @@ class Store {
   clearAll() {
     Object.values(KEYS).forEach(k => localStorage.removeItem(k));
     this._init();
-    this._emit('all');
+    this._emit('all', true); // skipSync=true — never upload empty data to Drive
   }
 
   // ── Reactivity ──
