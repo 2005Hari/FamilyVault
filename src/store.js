@@ -1,7 +1,7 @@
 /* ============================================================
-   FAMILY VAULT — Data Store (localStorage + Google Drive)
+   FAMILY VAULT — Data Store (localStorage + Firebase Firestore)
    ============================================================ */
-import { readDatabase, writeDatabase, isSignedIn } from './drive.js';
+import { writeVault, readVault, subscribeVault, isSignedIn } from './firebase-sync.js';
 
 const KEYS = {
   DOCS:     'fv_documents',
@@ -331,128 +331,96 @@ class Store {
   _emit(key, skipSync = false) {
     (this._listeners[key] || []).forEach(cb => cb());
     (this._listeners['all'] || []).forEach(cb => cb());
-    if (!skipSync) this._syncToDrive();
+    if (!skipSync) this._syncToFirestore();
   }
 
-  // ── Google Drive Sync ──
-  _getDataHash(data = null) {
-    if (!data) {
-      return JSON.stringify({
-        documents: this.documents,
-        members:   this.members,
-        activity:  this.activity,
-        settings:  this.settings,
-        locations: this.locations
-      });
-    }
-    return JSON.stringify({
-      documents: data.documents || [],
-      members:   data.members || [],
-      activity:  data.activity || [],
-      settings:  data.settings || {},
-      locations: data.locations || []
-    });
-  }
 
-  async pullFromDrive(isBackground = false) {
+  // ── Google Drive / Firestore Sync ────────────────────────
+
+  // Write local vault data to Firestore
+  async _syncToFirestore() {
     if (!isSignedIn()) return;
-    try {
-      let data = await readDatabase();
-      if (typeof data === 'string') {
-        try { data = JSON.parse(data); } catch (e) { console.error('Parse err', e); }
-      }
-      if (data) {
-        // If the remote data has the old dummy data, NUKE IT on Drive by overwriting it with local
-        if (data.documents && data.documents.some(d => d.title === "Dad's Passport" || d.title === "Car Insurance")) {
-           console.log("Found dummy data on Drive! Nuking it...");
-           await this._syncToDrive(true);
-           return;
-        }
-
-        const remoteHash = this._getDataHash(data);
-        const localHash = this._getDataHash();
-        
-        if (remoteHash !== localHash) {
-          this.importData(JSON.stringify(data));
-          if (isBackground) {
-            const { showToast } = await import('./app.js');
-            showToast('Vault updated with new changes from Drive', 'success');
-            
-            // Auto-refresh the current view if we are not editing
-            const { router } = await import('./router.js');
-            const path = router.currentPath();
-            if (path && path !== 'add' && !path.startsWith('detail')) {
-              router.navigate(path, true);
-            }
-          }
-        }
-      } else {
-        // Cloud is empty or we couldn't find it.
-        // ONLY upload our current local data if the user explicitly completed onboarding on THIS device.
-        // A brand-new device with default settings must NEVER overwrite the cloud with dummy data.
-        const s = this.settings;
-        if (s.pin && s.seeded) {
-          await this._syncToDrive(true);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to pull from drive', e);
-    }
-  }
-
-  startPolling() {
-    if (this._polling) return;
-    this._polling = setInterval(() => {
-      // Prevent overwriting if we are currently saving or adding a document
-      if (this._isSyncing) return;
-      if (window.location.hash.includes('add')) return;
-      
-      this.pullFromDrive(true);
-    }, 15000); // Check every 15 seconds
-  }
-
-  async _syncToDrive(force = false) {
-    if (!isSignedIn()) return;
-    
-    // Prevent overlapping syncs
     if (this._isSyncing) return;
     this._isSyncing = true;
-    
-    try {
-      // Show sync indicator in the UI if possible
-      const appEl = document.getElementById('app');
-      let syncBadge = document.getElementById('sync-badge');
-      if (appEl && !syncBadge) {
-        syncBadge = document.createElement('div');
-        syncBadge.id = 'sync-badge';
-        syncBadge.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:6px;"></div> <span style="font-size:11px;">Saving to Drive...</span>`;
-        syncBadge.style.cssText = 'position:fixed; top:10px; right:10px; background:var(--surface-raised); border:1px solid var(--line); padding:4px 8px; border-radius:12px; display:flex; align-items:center; z-index:9999; color:var(--text-hi); box-shadow:0 4px 12px rgba(0,0,0,0.5);';
-        appEl.appendChild(syncBadge);
-      }
 
+    this._showSyncBadge('saving');
+    try {
       const data = JSON.parse(this.exportData());
-      await writeDatabase(data);
-      
-      if (syncBadge) {
-        syncBadge.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" style="margin-right:4px;"><path d="M20 6L9 17l-5-5" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg> <span style="font-size:11px;color:var(--text-hi);">Saved</span>`;
-        setTimeout(() => syncBadge.remove(), 2000);
-      }
+      await writeVault(data);
+      this._showSyncBadge('saved');
     } catch (e) {
-      console.error('Failed to sync to drive', e);
-      const syncBadge = document.getElementById('sync-badge');
-      if (syncBadge) syncBadge.remove();
+      console.error('Firestore write failed:', e);
+      this._showSyncBadge('hide');
     } finally {
       this._isSyncing = false;
     }
   }
 
+  // Pull vault from Firestore once (on sign-in)
+  async pullFromCloud() {
+    if (!isSignedIn()) return;
+    try {
+      const data = await readVault();
+      if (data) {
+        this.importData(JSON.stringify(data));
+      } else {
+        // First device to set up — push local data if vault is complete
+        const s = this.settings;
+        if (s.pin && s.seeded) {
+          await this._syncToFirestore();
+        }
+      }
+    } catch (e) {
+      console.error('Firestore read failed:', e);
+    }
+  }
+
+  // Start real-time listener — fires every time another device saves
+  startRealTimeSync() {
+    if (this._unsubscribeFirestore) return; // already listening
+    this._unsubscribeFirestore = subscribeVault((data) => {
+      if (this._isSyncing) return; // ignore if we just saved
+      const remoteHash = JSON.stringify(data);
+      const localHash  = JSON.stringify(JSON.parse(this.exportData()));
+      if (remoteHash !== localHash) {
+        this.importData(JSON.stringify(data));
+        // Refresh the current view
+        import('./app.js').then(({ showToast }) =>
+          showToast('Vault updated from another device', 'success')
+        );
+        import('./router.js').then(({ router }) => {
+          const path = router.currentPath();
+          if (path && path !== 'add' && !path.startsWith('detail')) {
+            router.navigate(path, true);
+          }
+        });
+      }
+    });
+  }
+
+  _showSyncBadge(state) {
+    const appEl = document.getElementById('app');
+    if (!appEl) return;
+    let badge = document.getElementById('sync-badge');
+    if (state === 'hide') { badge?.remove(); return; }
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'sync-badge';
+      badge.style.cssText = 'position:fixed;top:10px;right:10px;background:var(--surface-raised);border:1px solid var(--line);padding:4px 10px;border-radius:12px;display:flex;align-items:center;z-index:9999;color:var(--text-hi);box-shadow:0 4px 12px rgba(0,0,0,0.5);font-size:11px;';
+      appEl.appendChild(badge);
+    }
+    if (state === 'saving') {
+      badge.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:6px;"></div> Saving…`;
+    } else {
+      badge.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" style="margin-right:4px;"><path d="M20 6L9 17l-5-5" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg> Saved`;
+      setTimeout(() => badge.remove(), 2000);
+    }
+  }
+
   clearAll() {
-    localStorage.removeItem(KEYS.DOCS);
-    localStorage.removeItem(KEYS.MEMBERS);
-    localStorage.removeItem(KEYS.ACTIVITY);
-    localStorage.removeItem(KEYS.SETTINGS);
-    localStorage.removeItem(KEYS.LOCATIONS);
+    Object.values(KEYS).forEach(k => localStorage.removeItem(k));
     this._init();
+    this._emit('all', true); // skipSync=true
   }
 }
 

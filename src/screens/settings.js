@@ -239,16 +239,16 @@ export function renderSettings(container) {
 
   // Sign out
   container.querySelector('#s-signout').addEventListener('click', async () => {
-    const { signOut } = await import('../drive.js');
+    const { signOut } = await import('../firebase-sync.js');
     showModal({
       title: 'Sign out?',
-      body: '<p>This will disconnect your Google Drive and clear your local PIN session.</p>',
+      body: '<p>This will sign you out of your Google account and lock the vault.</p>',
       actions: [
         {
           label: 'Sign out',
           className: 'btn-primary btn-sm',
-          onClick: () => {
-            signOut();
+          onClick: async () => {
+            await signOut();
             store.clearAll();
             showToast('Signed out successfully', 'success');
             router.navigate('lock');
@@ -259,12 +259,13 @@ export function renderSettings(container) {
     });
   });
 
-  // Nuke Cloud
+  // Nuke Cloud (now clears Firestore vault doc + Drive files)
   container.querySelector('#s-nuke').addEventListener('click', async () => {
     const { nukeCloudDrive } = await import('../drive.js');
+    const { writeVault, getUser } = await import('../firebase-sync.js');
     showModal({
-      title: '☢️ Nuke Cloud Drive?',
-      body: '<p>This will <b>permanently delete EVERYTHING</b> in your Google Drive AppData folder for this app.</p><p style="margin-top:12px; color:var(--coral); font-size:12.5px;">Type <b>NUKE</b> to confirm.</p><input class="form-input" id="nuke-confirm" type="text" placeholder="Type NUKE" style="margin-top:10px;" />',
+      title: '☢️ Reset Everything?',
+      body: '<p>This will <b>permanently delete</b> all vault data from Firestore and Google Drive.</p><p style="margin-top:12px; color:var(--coral); font-size:12.5px;">Type <b>NUKE</b> to confirm.</p><input class="form-input" id="nuke-confirm" type="text" placeholder="Type NUKE" style="margin-top:10px;" />',
       actions: [
         {
           label: 'NUKE IT',
@@ -274,13 +275,16 @@ export function renderSettings(container) {
             if (val !== 'NUKE') { showToast('Type NUKE to confirm', 'error'); return; }
             try {
               document.body.style.pointerEvents = 'none';
-              showToast('Nuking Google Drive...', 'success');
-              await nukeCloudDrive();
+              showToast('Resetting vault…', 'success');
+              // Delete Firestore vault doc by writing empty object
+              await writeVault({ documents:[], members:[], activity:[], settings:{}, locations:[] });
+              // Delete Drive files
+              await nukeCloudDrive().catch(() => {});
               store.clearAll();
-              showToast('Cloud Drive nuked successfully!', 'success');
+              showToast('Vault reset successfully!', 'success');
               router.navigate('lock');
             } catch (e) {
-              showToast('Failed to nuke: ' + e.message, 'error');
+              showToast('Failed: ' + e.message, 'error');
             } finally {
               document.body.style.pointerEvents = 'auto';
             }

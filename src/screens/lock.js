@@ -4,7 +4,7 @@
 import { store } from '../store.js';
 import { router } from '../router.js';
 import { showToast, checkAndNotifyExpirations } from '../app.js';
-import { signIn, isSignedIn, initDrive } from '../drive.js';
+import { signIn, signOut, isSignedIn, waitForAuth } from '../firebase-sync.js';
 
 let pinBuffer = '';
 let isOnboarding = false;
@@ -12,18 +12,22 @@ let onboardStep = 1; // 1=family name, 2=set PIN, 3=confirm PIN
 let onboardData = {};
 
 export async function renderLock(container) {
+  // Wait for Firebase to restore session from previous visit
+  await waitForAuth();
+
   if (!isSignedIn()) {
     renderGoogleSignIn(container);
   } else {
-    // If online, securely fetch latest vault state (like new PINs) before rendering the lock screen
+    // Already signed in — pull latest vault from Firestore
     if (navigator.onLine) {
       container.innerHTML = `
         <div class="lock-screen" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%;">
           <div class="spinner" style="margin-bottom:16px;"></div>
-          <p style="color:var(--text-lo); font-size:14px;">Syncing vault...</p>
+          <p style="color:var(--text-lo); font-size:14px;">Syncing vault…</p>
         </div>
       `;
-      await store.pullFromDrive();
+      await store.pullFromCloud();
+      store.startRealTimeSync();
     }
     checkVaultState(container);
   }
@@ -57,24 +61,27 @@ function renderGoogleSignIn(container) {
     </div>
   `;
 
-  // Pre-init drive API
-  initDrive();
-
   container.querySelector('#google-signin-btn').addEventListener('click', async () => {
+    const btn = container.querySelector('#google-signin-btn');
+    const loading = container.querySelector('#drive-loading');
+    btn.disabled = true;
     try {
       await signIn();
-      container.querySelector('#google-signin-btn').style.display = 'none';
-      container.querySelector('#drive-loading').style.display = 'block';
+      btn.style.display = 'none';
+      loading.style.display = 'block';
 
-      // ── CRITICAL: wipe stale local data so Drive always wins on sign-in ──
+      // Wipe stale local data so Firestore always wins on sign-in
       store.clearAll();
 
-      await store.pullFromDrive();
+      await store.pullFromCloud();
+      store.startRealTimeSync();
       checkVaultState(container);
     } catch (e) {
+      console.error('Sign in error:', e);
       showToast('Sign in failed or cancelled', 'error');
-      container.querySelector('#google-signin-btn').style.display = 'block';
-      container.querySelector('#drive-loading').style.display = 'none';
+      btn.disabled = false;
+      btn.style.display = 'block';
+      loading.style.display = 'none';
     }
   });
 }
